@@ -5,18 +5,13 @@ pragma solidity ^0.8.9;
 // Import this file to use console.log
 import "hardhat/console.sol";
 
-/// @title PatientRecords
-/// @author Nicolas Frega - <frega.nicolas@gmail.com>
-/// Allows Medical Record System to maintain records of patients in their network.
-/// Records can be accessed by Hospitals if and only if patient provides name.
-/// Patients are rewarded with erc20 tokens for providing their name
-
 import "./InterfacePatientRecords.sol";
 import "./Ownable.sol";
 
-// import "./SpringToken.sol";
-// import "./TokenDestructible.sol";
-// import "./SafeMath.sol";
+/// @title PatientRecords
+/// @author Noor-ul-Ain - <nooulain.tahir10@gmail.com>
+/// Allows Medical Record System to maintain records of patients in their network.
+/// Records can be accessed by Hospitals if and only if patient provides name.
 
 contract HealthRecord is Ownable {
     /*
@@ -40,15 +35,12 @@ contract HealthRecord is Ownable {
     /*
      * Storage
      */
-    // SpringToken public springToken;
     mapping(address => bool) public isPatient;
     mapping(address => bool) public isHospital;
     mapping(uint256 => mapping(address => Records)) records;
     mapping(uint256 => dateRange) dateRanges;
     mapping(address => mapping(string => uint256)) mappingByName;
     uint256 public recordCount = 0;
-    uint256 public tokenRewardAmount;
-    address public tokenAddress;
 
     struct Records {
         bool providedName;
@@ -90,6 +82,11 @@ contract HealthRecord is Ownable {
 
     modifier patientExist(address patient) {
         require(isPatient[patient]);
+        _;
+    }
+
+    modifier callerIsPateint(address _patientAddress){
+        require(msg.sender == _patientAddress, "You can only access your own record");
         _;
     }
 
@@ -135,12 +132,6 @@ contract HealthRecord is Ownable {
         _;
     }
 
-    /// @dev Fallback function allows to deposit ether.
-    // function() public payable {
-    //     if (msg.value > 0) {
-    //         emit Deposit(msg.sender, msg.value);
-    //     }
-    // }
     fallback() external payable {}
 
     receive() external payable {}
@@ -227,13 +218,16 @@ contract HealthRecord is Ownable {
     /// @param _dischargeDate date of discharge, simple uint.
     /// @param _visitReason internal code for reason for visit.
     function addRecord(
+        string memory _name,
         address _patientAddress,
         address _hospital,
         uint256 _admissionDate,
         uint256 _dischargeDate,
         uint256 _visitReason
     ) public onlyOwner patientExist(_patientAddress) hospitalExist(_hospital) {
-        records[recordCount][_patientAddress].providedName = false;
+        
+        records[recordCount][_patientAddress].providedName = true;
+        records[recordCount][_patientAddress].name = _name;
         records[recordCount][_patientAddress].patient = _patientAddress;
         records[recordCount][_patientAddress].hospital = _hospital;
         records[recordCount][_patientAddress].admissionDate = _admissionDate;
@@ -266,6 +260,25 @@ contract HealthRecord is Ownable {
 
         emit NameAddedToRecords(_recordID, msg.sender);
     }
+
+
+    /// @dev Allows a Patient to retrieve his/her own record.
+    /// @param _recordID ID of the patient specific record.
+    /// @param _patientAddress address of the patient for record.
+    function getOwnRecord(uint _recordID, address _patientAddress)
+        public
+        view
+        recordExists(_recordID, _patientAddress)
+        callerIsPateint(_patientAddress)
+        patientProvidedName(_recordID, _patientAddress)
+        onlyHospital(_recordID, _patientAddress)
+        returns (Records memory)
+    {
+        Records storage ownRecord = records[_recordID][_patientAddress];
+        return ownRecord;
+    }
+
+
 
     /// @dev Allows a Hospital to retrieve the record for a patient.
     /// @param _recordID ID of the patient specific record.
@@ -323,51 +336,4 @@ contract HealthRecord is Ownable {
             ) _numberOfPatients += 1;
         }
     }
-
-    // /// @dev sets the amount of Spring token rewards for providing name.
-    // /// @param _tokenReward Amount of tokens to reward patient.
-    // function setSpringTokenReward(uint256 _tokenReward)
-    //     public
-    //     onlyOwner
-    //     higherThanZero(_tokenReward)
-    // {
-    //     tokenRewardAmount = _tokenReward;
-    //     emit TokenRewardSet(_tokenReward);
-    // }
-
-    // /// @dev gets the balance of patient.
-    // /// @param _patientAddress address of patient.
-    // /// @return Returns patient balance.
-    // function getPatientBalance(address _patientAddress)
-    //     public
-    //     view
-    //     onlyOwner
-    //     returns (uint256)
-    // {
-    //     return springToken.balanceOf(_patientAddress);
-    // }
-
-    /*
-     * Internal functions
-     */
-    /// @dev sets the patient token reward contract.
-    /// @param _newspringToken Address of patient token.
-    // function setSpringToken(address _newspringToken)
-    //     internal
-    //     onlyOwner
-    //     notNull(_newspringToken)
-    // {
-    //     springToken = SpringToken(_newspringToken);
-    //     tokenAddress = address(springToken);
-    // }
-
-    /// @dev pays a patient for providing their name.
-    /// @param _patientAddress to receive tokens.
-    // function payPatient(address _patientAddress)
-    //     private
-    //     notNull(_patientAddress)
-    // {
-    //     springToken.transfer(_patientAddress, tokenRewardAmount);
-    //     emit PatientPaid(_patientAddress);
-    // }
 }
