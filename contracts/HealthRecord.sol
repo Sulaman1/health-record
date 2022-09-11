@@ -49,7 +49,15 @@ contract HealthRecord is Ownable {
         address hospital;
         uint256 admissionDate;
         uint256 dischargeDate;
-        uint256 visitReason;
+        string visitReason;
+        Diagnosis diagnosis;
+    }
+
+    struct Diagnosis{
+        uint patientID;
+        string allergies;
+        string geneticDisease;
+        string medicalReport;
     }
 
     struct dateRange {
@@ -223,7 +231,8 @@ contract HealthRecord is Ownable {
         address _hospital,
         uint256 _admissionDate,
         uint256 _dischargeDate,
-        uint256 _visitReason
+        string memory _visitReason,
+        Diagnosis memory _diag
     ) public onlyOwner patientExist(_patientAddress) hospitalExist(_hospital) {
         
         records[recordCount][_patientAddress].providedName = true;
@@ -233,6 +242,7 @@ contract HealthRecord is Ownable {
         records[recordCount][_patientAddress].admissionDate = _admissionDate;
         records[recordCount][_patientAddress].dischargeDate = _dischargeDate;
         records[recordCount][_patientAddress].visitReason = _visitReason;
+        records[recordCount][_patientAddress].diagnosis = _diag;
 
         dateRanges[recordCount].admissionDate = _admissionDate;
         dateRanges[recordCount].dischargeDate = _dischargeDate;
@@ -270,8 +280,6 @@ contract HealthRecord is Ownable {
         view
         recordExists(_recordID, _patientAddress)
         callerIsPateint(_patientAddress)
-        patientProvidedName(_recordID, _patientAddress)
-        onlyHospital(_recordID, _patientAddress)
         returns (Records memory)
     {
         Records storage ownRecord = records[_recordID][_patientAddress];
@@ -287,14 +295,13 @@ contract HealthRecord is Ownable {
         public
         view
         recordExists(_recordID, _patientAddress)
-        patientProvidedName(_recordID, _patientAddress)
         onlyHospital(_recordID, _patientAddress)
         returns (
             string memory _name,
             address _hospital,
             uint256 _admissionDate,
             uint256 _dischargeDate,
-            uint256 _visitReason
+            string memory _visitReason
         )
     {
         _name = records[_recordID][_patientAddress].name;

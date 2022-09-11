@@ -11,6 +11,7 @@ module.exports = {
     // outputFile: "gas-report.txt",
     noColors: false,
     coinmarketcap: "78b95322-5831-4339-a7d0-dbfddec9ded2",
+
   },
 
   namedAccounts: {
